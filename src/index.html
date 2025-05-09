@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>ELECTRE I - Interface</title>
+    <script src="../cytoscape.min.js"></script>
+    <script src="../jspdf.umd.min.js"></script>
+    <script src="../html2canvas.min.js"></script>
+    <script src="../jspdf.plugin.autotable.min.js"></script>
+    <link rel="stylesheet" href="../animate.min.css"/>
+    <link href="../Tailwind.css" rel="stylesheet">
+    <style>
+         #graph {
+            width: 100%;
+            height: 400px;
+            border: 1px solid #e0e0e0;
+            margin-top: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+            background-color: #f9f9f9;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-indigo-100 via-purple-100 to-pink-100 min-h-screen flex items-center justify-center p-6">
+    <!-- Main Container -->
+    <div class="w-full max-w-4xl bg-white rounded-3xl shadow-xl p-8 space-y-8 transition-all duration-300">
+        <!-- Title -->
+        <h1 class="text-4xl font-bold text-indigo-800 text-center mb-6">Méthode ELECTRE I</h1>
+
+        <!-- Input Controls -->
+        <div class="flex flex-col md:flex-row flex-wrap gap-6 items-center justify-center text-sm">
+            <div class="flex items-center gap-2">
+                <label for="nbActions" class="text-lg font-medium text-gray-700">Nombre d'actions :</label>
+                <input type="number" id="nbActions" min="1" value="3"
+                    class="border border-gray-300 rounded-md px-4 py-2 w-24 focus:outline-none">
+            </div>
+            <div class="flex items-center gap-2">
+                <label for="nbCriteres" class="text-lg font-medium text-gray-700">Nombre de critères :</label>
+                <input type="number" id="nbCriteres" min="1" value="3"
+                    class="border border-gray-300 rounded-md px-4 py-2 w-24 focus:outline-none">
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex flex-wrap justify-center gap-4">
+            <button id="generer"
+                onclick="generateTables()"
+                class="bg-indigo-600 cursor-pointer text-white px-6 py-3 rounded-md hover:bg-indigo-700 transition duration-300 focus:outline-none">
+                Générer
+            </button>
+            <button id="resetBtn"
+                class="hidden cursor-pointer bg-red-500 text-white px-6 py-3 rounded-md hover:bg-red-600 transition duration-300 focus:outline-none">
+                ↺ Recommencer
+            </button>
+        </div>
+
+        <!-- Tables Container -->
+        <div id="tablesContainer" class="hidden space-y-8"></div>
+    </div>
+
+    <script>
+        // Reset Button Functionality
+        const resetBtn = document.getElementById('resetBtn');
+        const generer = document.getElementById('generer');
+        resetBtn.onclick = () => {
+            // Clear input fields
+            document.getElementById('nbActions').value = 3;
+            document.getElementById('nbCriteres').value = 3;
+
+            // Clear generated tables and results
+            const container = document.getElementById('tablesContainer');
+            container.innerHTML = '';
+            container.classList.add('hidden');
+
+            // Clear graph if it exists
+            const graphElement = document.getElementById('graph');
+            if (graphElement) {
+                graphElement.remove();
+            }
+
+             // Hide the reset button again
+            resetBtn.classList.add('hidden');
+            generer.classList.remove('hidden');
+        };
+
+        // Input Validation
+        document.querySelectorAll('input[type="number"]').forEach(input => {
+            input.addEventListener('input', (event) => {
+                if (parseFloat(event.target.value) <= 0) {
+                    event.target.value = 1;
+                }
+            });
+        });
+
+        // Generate Tables Function
+        function generateTables() {
+            resetBtn.classList.remove('hidden');
+            generer.classList.add('hidden');
+
+            const n = parseInt(document.getElementById('nbActions').value);
+            const m = parseInt(document.getElementById('nbCriteres').value);
+            const container = document.getElementById('tablesContainer');
+            container.innerHTML = '';
+            container.classList.remove('hidden');
+
+            // Title for Performance Table
+            const title = document.createElement('h2');
+            title.innerText = 'Remplir les performances :';
+            title.className = "text-2xl font-semibold text-gray-700 animate__animated animate__slideInDown";
+            container.appendChild(title);
+
+            // Create Performance Table
+            const table = document.createElement('table');
+            table.className = "w-full border border-gray-300 rounded-lg overflow-hidden animate__animated animate__fadeInUp";
+
+            const header = document.createElement('tr');
+            header.className = "bg-indigo-100";
+            header.innerHTML = `<th class="border border-gray-300 px-4 py-3">Actions</th>`;
+            for (let j = 1; j <= m; j++) {
+                header.innerHTML += `<th class="border border-gray-300 px-4 py-3">C${j}</th>`;
+            }
+            table.appendChild(header);
+
+            for (let i = 0; i < n; i++) {
+                const row = document.createElement('tr');
+                row.innerHTML = `<td class="border border-gray-300  px-4 py-3 font-semibold">A${i + 1}</td>`;
+                for (let j = 0; j < m; j++) {
+                    row.innerHTML += `<td class="border border-gray-300 px-4 py-3"><input type="number" min="1" step="any" id="g_${i}_${j}" class="border border-gray-300 rounded-md px-3 py-2 w-full focus:outline-none"/></td>`;
+                }
+                table.appendChild(row);
+            }
+            container.appendChild(table);
+
+            // Weights Section
+            const weightsTitle = document.createElement('h3');
+            weightsTitle.innerText = 'Poids des critères :';
+            weightsTitle.className = "text-2xl font-semibold text-gray-700 mt-6 animate__animated animate__slideInLeft";
+            container.appendChild(weightsTitle);
+
+            const weightsRow = document.createElement('div');
+            weightsRow.className = "flex gap-4 flex-wrap animate__animated animate__fadeInLeft";
+            for (let j = 0; j < m; j++) {
+                weightsRow.innerHTML += `C${j + 1} : <input type="number" min="1" step="any" id="w_${j}" class="border border-gray-300 rounded-md px-3 py-2 w-20 focus:outline-none">`;
+            }
+            container.appendChild(weightsRow);
+
+            // Thresholds Section
+            const thresholdsTitle = document.createElement('h3');
+            thresholdsTitle.innerText = 'Seuils de concordance et de discordance :';
+            thresholdsTitle.className = "text-2xl font-semibold text-gray-700 mt-6 animate__animated animate__slideInRight";
+            container.appendChild(thresholdsTitle);
+
+            const thresholdsRow = document.createElement('div');
+            thresholdsRow.className = "flex gap-4 flex-wrap animate__animated animate__fadeInRight";
+            thresholdsRow.innerHTML = `
+                Seuil de concordance : <input type="number" min="0" step="0.01" id="seuilC" class="border border-gray-300 rounded-md px-3 py-2 w-20 focus:outline-none">
+                Seuil de discordance : <input type="number" min="0" step="0.01" id="seuilD" class="border border-gray-300 rounded-md px-3 py-2 w-20 focus:outline-none">
+            `;
+            container.appendChild(thresholdsRow);
+
+            // Calculate Button
+            const calcButton = document.createElement('button');
+            calcButton.innerText = "Calculer Concordance et Discordance";
+            calcButton.className = "mt-6 bg-indigo-600 text-white px-5 py-3 rounded-md hover:bg-indigo-700 transition duration-300 ease-in-out focus:outline-none";
+            calcButton.onclick = () => calculateMatrices(n, m);
+            container.appendChild(calcButton);
+        }
+
+        // Matrix Calculation Logic
+     function calculateMatrices(n, m) {
+    const performances = [];
+    for (let i = 0; i < n; i++) {
+        const row = [];
+        for (let j = 0; j < m; j++) {
+            const value = parseFloat(document.getElementById(`g_${i}_${j}`).value);
+            if (isNaN(value)) {
+                alert(`Veuillez remplir toutes les valeurs de performance pour A${i + 1}, C${j + 1}`);
+                return;
+            }
+            row.push(value);
+        }
+        performances.push(row);
+    }
+
+    const weights = Array.from({ length: m }, (_, j) => parseFloat(document.getElementById(`w_${j}`).value));
+    for (let j = 0; j < m; j++) {
+    const w = document.getElementById(`w_${j}`).value.trim();
+    if (w === "" || isNaN(parseFloat(w))) {
+        alert(`Veuillez remplir un poids valide pour le critère C${j + 1}`);
+        return;
+    }
+}
+
+    const seuilC = parseFloat(document.getElementById("seuilC").value);
+    const seuilD = parseFloat(document.getElementById("seuilD").value);
+    
+
+// Récupérer les valeurs des seuils comme chaînes de caractères
+const seuilCStr = document.getElementById("seuilC").value.trim();
+const seuilDStr = document.getElementById("seuilD").value.trim();
+if (isNaN(seuilC) || seuilC === "" || isNaN(seuilD) || seuilD === "") {
+    alert("Veuillez entrer des seuils valides.");
+    return;
+}
+
+
+
+    const concordance = Array(n).fill(null).map(() => Array(n).fill(0));
+    const discordance = Array(n).fill(null).map(() => Array(n).fill(0));
+
+    for (let i = 0; i < n; i++) {
+        for (let k = 0; k < n; k++) {
+            if (i === k) {
+            concordance[i][k] = "1.00"; // 1 sur la diagonale principale
+            continue;
+        }
+            let sumWeights = 0;
+            let totalWeight = 0;
+            for (let j = 0; j < m; j++) {
+                totalWeight += weights[j];
+                if (performances[i][j] >= performances[k][j]) {
+                    sumWeights += weights[j];
+                }
+            }
+            concordance[i][k] = (sumWeights / totalWeight).toFixed(2);
+
+            let diff = -Infinity;
+            let maxDiff = -Infinity;
+            for (let j = 0; j < m; j++) {
+                const d = performances[k][j] - performances[i][j];
+                if (d > 0) diff = Math.max(diff, d);
+                const range = Math.abs(Math.max(...performances.map(p => p[j])) - Math.min(...performances.map(p => p[j])));
+                maxDiff = Math.max(maxDiff, range);
+            }
+            discordance[i][k] = (maxDiff === 0 ? 0 : (diff / maxDiff).toFixed(2));
+        }
+    }
+
+    // Affichage des matrices de Concordance et Discordance
+    const container = document.getElementById('tablesContainer');
+    displayMatrix(concordance, "Matrice de Concordance", container);
+    displayMatrix(discordance, "Matrice de Discordance", container);
+
+    // Calcul de la matrice de surclassement
+    const surclassement = Array(n).fill(null).map(() => Array(n).fill(0));
+    for (let i = 0; i < n; i++) {
+       for (let k = 0; k < n; k++) {
+        if (i === k) {
+            surclassement[i][k] = 1; // Mettre 1 sur la diagonale
+        } else if (concordance[i][k] >= seuilC && discordance[i][k] <= seuilD) {
+            surclassement[i][k] = 1;
+        } else {
+            surclassement[i][k] = 0;
+        }
+    }
+}
+
+
+    // Affichage de la matrice de surclassement après les matrices de Concordance et Discordance
+    const surclassTitle = document.createElement('h3');
+    surclassTitle.innerText = 'Matrice de Surclassement :';
+    surclassTitle.className = "text-xl font-semibold mt-6 animate__animated animate__fadeInUp";
+    container.appendChild(surclassTitle);
+
+    const surclassTable = document.createElement('table');
+    surclassTable.className = "w-full border border-gray-300 rounded-lg overflow-hidden animate__animated animate__fadeInUp";
+
+    const surclassHeader = document.createElement('tr');
+    surclassHeader.innerHTML = `<th class="border border-gray-300  bg-indigo-100 px-4 py-2"> </th>`;
+    for (let k = 0; k < n; k++) {
+        surclassHeader.innerHTML += `<th class="border border-gray-300 bg-indigo-100 px-4 py-2">A${k + 1}</th>`;
+    }
+    surclassTable.appendChild(surclassHeader);
+
+    for (let i = 0; i < n; i++) {
+        const row = document.createElement('tr');
+        row.innerHTML = `<td class="border border-gray-300  px-4 py-2 font-bold">A${i + 1}</td>`;
+        for (let k = 0; k < n; k++) {
+            row.innerHTML += `<td class="border border-gray-300 px-4 py-2">${surclassement[i][k]}</td>`;
+        }
+        surclassTable.appendChild(row);
+    }
+    container.appendChild(surclassTable);
+
+    // Calcul et affichage des actions efficaces
+    let efficaces = Array(n).fill(true);
+    for (let i = 0; i < n; i++) {
+        for (let k = 0; k < n; k++) {
+            if (i !== k && parseFloat(concordance[k][i]) >= seuilC && parseFloat(discordance[k][i]) <= seuilD) {
+                efficaces[i] = false;
+                break;
+            }
+        }
+    }
+
+    // Création du graphique
+    const containerGraph = document.createElement('div');
+    containerGraph.id = "graph";
+    container.appendChild(containerGraph);
+
+    const elements = [];
+    for (let i = 0; i < n; i++) {
+        elements.push({ data: { id: 'A' + (i + 1), label: 'A' + (i + 1) } });
+    }
+
+    for (let i = 0; i < n; i++) {
+        for (let j = 0; j < n; j++) {
+            if (i !== j && parseFloat(concordance[i][j]) >= seuilC && parseFloat(discordance[i][j]) <= seuilD) {
+                elements.push({ data: { id: 'e' + i + '_' + j, source: 'A' + (i + 1), target: 'A' + (j + 1) } });
+            }
+        }
+    }
+    
+    cytoscape({
+        container: document.getElementById('graph'),
+        elements: elements,
+        style: [
+            { selector: 'node', style: { 'background-color': '#6b46c1', 'label': 'data(label)', 'color': '#fff', 'text-valign': 'center', 'text-halign': 'center', 'font-size': '14px' } },
+            { selector: 'edge', style: { 'width': 2, 'line-color': '#a8dadc', 'target-arrow-shape': 'triangle', 'target-arrow-color': '#a8dadc', 'curve-style': 'bezier' } }
+        ],
+        layout: { name: 'circle' }
+    });
+
+    const actionsEfficaces = efficaces.map((isEff, index) => isEff ? `A${index + 1}` : null).filter(Boolean);
+    const divEff = document.createElement("div");
+    divEff.className = "mt-6 p-4 bg-green-100 border border-green-300 rounded-md animate__animated animate__fadeIn";
+    divEff.innerHTML = `<h3 class="font-bold text-lg text-green-800">L'ensemble des Actions efficaces E={ ${actionsEfficaces.join(", ")}}</h3>`;
+    container.appendChild(divEff);
+
+    const saveBtn = document.createElement("button");
+    saveBtn.className = "mt-6 bg-indigo-600 text-white px-5 py-3 rounded-md hover:bg-indigo-600 transition duration-300 ease-in-out focus:outline-none";
+    saveBtn.innerText = "💾 Sauvegarder les résultats en PDF";
+    saveBtn.onclick = () => saveResults(performances, weights, concordance, discordance, actionsEfficaces);
+    container.appendChild(saveBtn);
+}
+
+
+        // Display Matrices
+        function displayMatrix(matrix, title, container) {
+            const matrixDiv = document.createElement("div");
+            matrixDiv.className = "mt-6 p-4 bg-white border border-gray-300 rounded-md shadow-md animate__animated animate__fadeIn";
+
+            const matrixTitle = document.createElement("h3");
+            matrixTitle.className = "font-bold text-xl text-gray-800";
+            matrixTitle.innerText = title;
+            matrixDiv.appendChild(matrixTitle);
+
+            const matrixTable = document.createElement("table");
+            matrixTable.className = "w-full border border-gray-300 rounded-lg overflow-hidden shadow-md mt-2";
+
+            const headerRow = document.createElement("tr");
+            headerRow.innerHTML = `<th class="border border-gray-300 px-4 py-3"></th>${matrix.map((_, i) => `<th class="border border-gray-300 px-4 py-3">A${i + 1}</th>`).join('')}`;
+            matrixTable.appendChild(headerRow);
+
+            matrix.forEach((row, index) => {
+                const rowEl = document.createElement("tr");
+                rowEl.innerHTML = `<td class="border border-gray-300 px-4 py-3 font-semibold text-indigo-700">A${index + 1}</td>${row.map(cell => `<td class="border border-gray-300 px-4 py-3">${cell}</td>`).join('')}`;
+                matrixTable.appendChild(rowEl);
+            });
+
+            matrixDiv.appendChild(matrixTable);
+            container.appendChild(matrixDiv);
+        }
+
+        // Save Results as PDF
+        function saveResults(performances, weights, concordance, discordance, actionsEfficaces) {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+
+            let y = 10;
+            doc.setFontSize(18);
+            doc.setFont("helvetica", "bold");
+            doc.setTextColor(0, 102, 204);
+            doc.text("La Méthode multicritère ELECTRE I", doc.internal.pageSize.getWidth() / 2, y, { align: 'center' });
+            y += 10;
+
+            const currentDate = new Date().toLocaleDateString("fr-FR", {
+                weekday: "long", year: "numeric", month: "long", day: "numeric"
+            });
+            doc.setFontSize(12);
+            doc.setTextColor(0, 0, 0);
+            doc.text(`Date : ${currentDate}`, 10, y);
+            y += 10;
+
+            // Performance Table
+            const perfTable = performances.map((row, i) => [`A${i + 1}`, ...row]);
+            const headers = ["Action", ...weights.map((_, j) => `C${j + 1}`)];
+            doc.autoTable({ startY: y, head: [headers], body: perfTable });
+            y = doc.lastAutoTable.finalY + 10;
+
+            // Weights Table
+            doc.text("Poids des critères :", 10, y);
+            y += 6;
+            const weightsTable = [weights];
+            doc.autoTable({ startY: y, head: [weights.map((_, j) => `C${j + 1}`)], body: weightsTable });
+            y = doc.lastAutoTable.finalY + 10;
+
+            // Concordance Matrix
+            doc.text("Matrice de Concordance :", 10, y);
+            y += 6;
+            const concTable = concordance.map((row, i) => [`A${i + 1}`, ...row]);
+            doc.autoTable({ startY: y, head: [[""].concat(concordance.map((_, i) => `A${i + 1}`))], body: concTable });
+            y = doc.lastAutoTable.finalY + 10;
+
+            // Discordance Matrix
+            doc.text("Matrice de Discordance :", 10, y);
+            y += 6;
+            const discTable = discordance.map((row, i) => [`A${i + 1}`, ...row]);
+            doc.autoTable({ startY: y, head: [[""].concat(discordance.map((_, i) => `A${i + 1}`))], body: discTable });
+            y = doc.lastAutoTable.finalY + 10;
+
+            // Efficient Actions
+            doc.text("Actions efficaces :", 10, y);
+            y += 6;
+            doc.text(actionsEfficaces.join(", "), 10, y);
+            y += 10;
+
+            // Graph
+            const graphElement = document.getElementById("graph");
+            html2canvas(graphElement).then(canvas => {
+                const imgData = canvas.toDataURL("image/png");
+                if (y > 200) {
+                    doc.addPage();
+                    y = 10;
+                }
+                doc.setFontSize(12);
+                doc.text("Graphe des surclassements :", 10, y);
+                y += 5;
+                const imgWidth = 180;
+                const imgHeight = canvas.height * imgWidth / canvas.width;
+                doc.addImage(imgData, 'PNG', 10, y, imgWidth, imgHeight);
+                y += imgHeight + 10;
+                doc.save('resultats_electre.pdf');
+            });
+        }
+    </script>
+</body>
+</html>
