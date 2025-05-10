@@ -22,12 +22,8 @@
     </style>
 </head>
 <body class="bg-gradient-to-br from-indigo-100 via-purple-100 to-pink-100 min-h-screen flex items-center justify-center p-6">
-    <!-- Main Container -->
     <div class="w-full max-w-4xl bg-white rounded-3xl shadow-xl p-8 space-y-8 transition-all duration-300">
-        <!-- Title -->
         <h1 class="text-4xl font-bold text-indigo-800 text-center mb-6">Méthode ELECTRE I</h1>
-
-        <!-- Input Controls -->
         <div class="flex flex-col md:flex-row flex-wrap gap-6 items-center justify-center text-sm">
             <div class="flex items-center gap-2">
                 <label for="nbActions" class="text-lg font-medium text-gray-700">Nombre d'actions :</label>
@@ -41,44 +37,45 @@
             </div>
         </div>
 
-        <!-- Action Buttons -->
+        
         <div class="flex flex-wrap justify-center gap-4">
             <button id="generer"
                 onclick="generateTables()"
                 class="bg-indigo-600 cursor-pointer text-white px-6 py-3 rounded-md hover:bg-indigo-700 transition duration-300 focus:outline-none">
-                Générer
+
+                generer
             </button>
             <button id="resetBtn"
                 class="hidden cursor-pointer bg-red-500 text-white px-6 py-3 rounded-md hover:bg-red-600 transition duration-300 focus:outline-none">
-                ↺ Recommencer
+                RECOMMENCER
+                
             </button>
         </div>
 
-        <!-- Tables Container -->
+        
         <div id="tablesContainer" class="hidden space-y-8"></div>
     </div>
 
     <script>
-        // Reset Button Functionality
+       
         const resetBtn = document.getElementById('resetBtn');
         const generer = document.getElementById('generer');
         resetBtn.onclick = () => {
-            // Clear input fields
-            document.getElementById('nbActions').value = 3;
-            document.getElementById('nbCriteres').value = 3;
+            document.getElementById('nbActions').value = 1;
+            document.getElementById('nbCriteres').value = 1;
 
-            // Clear generated tables and results
+            
             const container = document.getElementById('tablesContainer');
             container.innerHTML = '';
             container.classList.add('hidden');
 
-            // Clear graph if it exists
+            
             const graphElement = document.getElementById('graph');
             if (graphElement) {
                 graphElement.remove();
             }
 
-             // Hide the reset button again
+            
             resetBtn.classList.add('hidden');
             generer.classList.remove('hidden');
         };
@@ -183,6 +180,7 @@
     }
 
     const weights = Array.from({ length: m }, (_, j) => parseFloat(document.getElementById(`w_${j}`).value));
+
     for (let j = 0; j < m; j++) {
     const w = document.getElementById(`w_${j}`).value.trim();
     if (w === "" || isNaN(parseFloat(w))) {
@@ -190,6 +188,9 @@
         return;
     }
 }
+    
+
+
 
     const seuilC = parseFloat(document.getElementById("seuilC").value);
     const seuilD = parseFloat(document.getElementById("seuilD").value);
